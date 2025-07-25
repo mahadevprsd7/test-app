@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "test-app"                // Name of the Docker image
         EC2_IP = "54.165.24.4"                   // Your EC2 public IP
         EC2_USER = "ec2-user"                    // EC2 user (ec2-user or ubuntu)
-        SSH_KEY = "~/.ssh/test-key.pem"          // Path to your SSH private key
+        SSH_KEY = "C:\\Users\\YourUserName\\.ssh\\test-key.pem"  // Updated path for SSH key (Windows path)
     }
 
     stages {
@@ -18,8 +18,9 @@ pipeline {
         stage('Test Docker') {
             steps {
                 script {
-                    sh 'docker --version'
-                    sh 'docker info'
+                    // Check Docker version and info
+                    bat 'docker --version'
+                    bat 'docker info'
                 }
             }
         }
@@ -28,7 +29,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image locally on Jenkins server
-                    powershell "docker build -t ${DOCKER_IMAGE} ."
+                    bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
@@ -37,7 +38,7 @@ pipeline {
             steps {
                 script {
                     // Save the Docker image to a tarball and gzip it
-                    powershell """
+                    bat """
                         docker save ${DOCKER_IMAGE} | gzip > site.tar.gz
                         scp -i ${SSH_KEY} site.tar.gz ${EC2_USER}@${EC2_IP}:/home/${EC2_USER}/
                     """
@@ -49,7 +50,7 @@ pipeline {
             steps {
                 script {
                     // SSH into EC2 and deploy the Docker image
-                    powershell """
+                    bat """
                         ssh -i ${SSH_KEY} ${EC2_USER}@${EC2_IP} << EOF
                             docker load < /home/${EC2_USER}/site.tar.gz
                             docker stop test-app-container || true
