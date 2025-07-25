@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image locally on Jenkins server
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    powershell "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
@@ -28,7 +28,7 @@ pipeline {
             steps {
                 script {
                     // Save the Docker image to a tarball and gzip it
-                    sh """
+                    powershell """
                         docker save ${DOCKER_IMAGE} | gzip > site.tar.gz
                         scp -i ${SSH_KEY} site.tar.gz ${EC2_USER}@${EC2_IP}:/home/${EC2_USER}/
                     """
@@ -40,7 +40,7 @@ pipeline {
             steps {
                 script {
                     // SSH into EC2 and deploy the Docker image
-                    sh """
+                    powershell """
                         ssh -i ${SSH_KEY} ${EC2_USER}@${EC2_IP} << EOF
                             docker load < /home/${EC2_USER}/site.tar.gz
                             docker stop test-app-container || true
