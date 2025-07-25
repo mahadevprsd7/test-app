@@ -18,7 +18,6 @@ pipeline {
         stage('Test Docker') {
             steps {
                 script {
-                    // Check Docker version and info
                     bat 'docker --version'
                     bat 'docker info'
                 }
@@ -28,7 +27,6 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image locally on Jenkins server
                     bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
@@ -37,9 +35,16 @@ pipeline {
         stage('Save & Send Docker Image to EC2') {
             steps {
                 script {
-                    // Save the Docker image to a tarball and gzip it
+                    // Save Docker image to tarball, then use PowerShell to compress it
                     bat """
-                        docker save ${DOCKER_IMAGE} | gzip > site.tar.gz
+                        docker save ${DOCKER_IMAGE} -o site.tar
+                    """
+                    // Use PowerShell to compress the tarball
+                    powershell """
+                        Compress-Archive -Path site.tar -DestinationPath site.tar.gz
+                    """
+                    // Now use SCP to transfer the compressed file
+                    bat """
                         scp -i ${SSH_KEY} site.tar.gz ${EC2_USER}@${EC2_IP}:/home/${EC2_USER}/
                     """
                 }
@@ -49,7 +54,6 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 script {
-                    // SSH into EC2 and deploy the Docker image
                     bat """
                         ssh -i ${SSH_KEY} ${EC2_USER}@${EC2_IP} << EOF
                             docker load < /home/${EC2_USER}/site.tar.gz
