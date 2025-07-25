@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/your-username/test-app.git'  // Replace with your GitHub repo URL
+                git 'https://github.com/mahadevprsd7/test-app.git'  // Replace with your GitHub repo URL
             }
         }
 
