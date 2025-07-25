@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "test-app"                  // Name of the Docker image
+        EC2_IP = "54.165.24.4"                     // Your EC2 public IP
+        EC2_USER = "ec2-user"                      // EC2 user (ec2-user or ubuntu)
+        SSH_KEY = "~/.ssh/test-key.pem"            // Path to your SSH private key
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/your-username/test-app.git'  // Replace with your GitHub repo URL
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${DOCKER_IMAGE} .'
+            }
+        }
+
+        stage('Save & Send Docker Image to EC2') {
+            steps {
+                sh '''
+                    docker save ${DOCKER_IMAGE} | gzip > site.tar.gz
+                    scp -i ${SSH_KEY} site.tar.gz ${EC2_USER}@${EC2_IP}:/home/${EC2_USER}/
+                '''
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sh '''
+                    ssh -i ${SSH_KEY} ${EC2_USER}@${EC2_IP} << EOF
+                        docker load < /home/${EC2_USER}/site.tar.gz
+                        docker stop test-app-container || true
+                        docker rm test-app-container || true
+                        docker run -d --name test-app-container -p 80:80 ${DOCKER_IMAGE}
+                    EOF
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful!"
+        }
+        failure {
+            echo "❌ Deployment failed."
+        }
+    }
+}
